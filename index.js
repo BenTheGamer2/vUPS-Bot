@@ -157,6 +157,8 @@ client.on('interactionCreate', async interaction => {
 
     const embed = new EmbedBuilder()
       .setColor(0x3498DB)
+      .addStringOption(opt => opt.setName('flight-number').setRequired(true))
+      .addStringOption(opt => opt.setName('departure').setRequired(true))
       .setTitle(`✈️ PIREPs for ${name}`)
       .setDescription(
         `**${pireps.length}** flights · **${totalHrs.toFixed(1)}h** block · **${formatLbs(totalLbs)}** hauled`
