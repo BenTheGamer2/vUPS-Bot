@@ -2,10 +2,13 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActivityType } = require('disco
 const { createClient } = require('@supabase/supabase-js');
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const BOT_TOKEN     = process.env.BOT_TOKEN     || 'YOUR_BOT_TOKEN_HERE';
-const SUPABASE_URL  = 'https://mpmvfqkmvvbnsqvtvlnu.supabase.co';
-const SUPABASE_KEY  = process.env.SUPABASE_KEY  || 'YOUR_SERVICE_ROLE_KEY_HERE';
-const PIREP_CHANNEL = '1484574499335831673';
+const BOT_TOKEN = process.env.BOT_TOKEN; 
+
+if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
+    console.error("❌ ERROR: Railway is not passing a valid token to the bot.");
+    console.error("Check your Railway Variables tab for 'BOT_TOKEN'.");
+    process.exit(1); 
+}
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 const client = new Client({
