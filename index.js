@@ -309,14 +309,30 @@ client.on('interactionCreate', async interaction => {
       if (!warnings[target.id]) warnings[target.id] = [];
       warnings[target.id].push({ reason, by: member.user.username, at: new Date().toISOString() });
       const count = warnings[target.id].length;
-      const embed = new EmbedBuilder().setColor(0xE67E22)
+
+      // DM the warned user
+      const dmEmbed = new EmbedBuilder().setColor(0xE67E22)
+        .setTitle('⚠️ You have received a warning — Virtual UPS Airlines')
+        .addFields(
+          { name: 'Reason',         value: reason,               inline: false },
+          { name: 'Issued By',      value: member.user.username, inline: true  },
+          { name: 'Total Warnings', value: count.toString(),     inline: true  },
+        )
+        .setDescription('Please review the server rules to avoid further action.')
+        .setFooter({ text: 'Virtual UPS Airlines · virtual-ups.vercel.app' })
+        .setTimestamp();
+      try { await target.user.send({ embeds: [dmEmbed] }); } catch { /* DMs may be closed */ }
+
+      // Staff confirmation
+      const staffEmbed = new EmbedBuilder().setColor(0xE67E22)
         .setTitle('⚠️ Warning Issued')
         .addFields(
-          { name: 'User',   value: target.toString(), inline: true },
-          { name: 'Reason', value: reason,            inline: true },
-          { name: 'Total Warnings', value: count.toString(), inline: true }
+          { name: 'User',           value: target.toString(), inline: true },
+          { name: 'Reason',         value: reason,            inline: true },
+          { name: 'Total Warnings', value: count.toString(),  inline: true },
+          { name: 'DM Sent',        value: 'Yes',             inline: true },
         ).setTimestamp();
-      return interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({ embeds: [staffEmbed] });
     }
 
     // ── Mod: /warnings ────────────────────────────────────────────────────────
@@ -416,7 +432,7 @@ client.on('interactionCreate', async interaction => {
         .setFooter({ text: 'Virtual UPS Airlines · Est. 2026' })
         .setTimestamp();
 
-      await channel.send({ content: '@everyone', embeds: [embed] });
+      await channel.send({ embeds: [embed] });
       return interaction.editReply({ content: '✅ Hiring post sent to ' + channel.toString(), ephemeral: true });
     }
 
