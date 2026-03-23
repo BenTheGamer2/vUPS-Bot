@@ -80,6 +80,7 @@ const commands = [
     .addStringOption(o => o.setName('message').setDescription('Announcement body').setRequired(true))
     .addStringOption(o => o.setName('ping').setDescription('Who to ping').setRequired(false)
       .addChoices(
+        { name: '@pilots',    value: 'pilots' },
         { name: 'No ping',    value: 'none' },
         { name: '@here',      value: 'here' },
         { name: '@everyone',  value: 'everyone' },
