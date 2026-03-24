@@ -195,26 +195,35 @@ if (cmd === 'leaderboard') {
     return interaction.editReply('No PIREPs filed yet.');
   }
 
-  // 1. Define Multipliers for vUPS Fleet
+  /**
+   * vUPS AIRFRAME MULTIPLIERS
+   * B722 (Classic): 1.2x - Rewards high-workload manual flying.
+   * MD11 (Tri-Jet): 1.0x - Standard heavy operations.
+   * B748 (Queen):   0.8x - High capacity, modern automation.
+   */
   const airframeMultipliers = {
-    'B748': 0.7, // Heavy / High Capacity
-    'MD11': 0.9, // Tri-Jet
-    'B722': 1.2, // Classic / Manual
-    'C208': 1.5  // Feeder / High Effort per lb
+    'B722': 1.2, 
+    'MD11': 1.0, 
+    'B748': 0.8,
+    'C208': 1.5  // Feeder/Caravan bonus
   };
 
   const totals = {}, flights = {}, points = {};
 
-  // 2. Aggregate Data and Calculate Weighted Scores
+  // 1. Process PIREPs and calculate the "Index Score"
   pireps.forEach(p => {
     const name = p.pilot || 'Unknown';
     const weight = Number(p.payload) || 0;
     const aircraft = p.aircraft || 'Unknown';
     
-    // Multiplier Logic (Defaults to 1.0 if aircraft not listed)
+    // Get multiplier or default to 1.0
     const mult = airframeMultipliers[aircraft] || 1.0;
     
-    // Formula: (Weight * Multiplier) + 500 point Activity Bonus
+    /**
+     * THE FORMULA:
+     * (Weight * Multiplier) + 500 point Activity Bonus (per flight)
+     * This ensures frequent flyers still beat "one-off" heavy hauls.
+     */
     const flightScore = Math.floor((weight * mult) + 500);
 
     totals[name] = (totals[name] || 0) + weight;
@@ -222,7 +231,7 @@ if (cmd === 'leaderboard') {
     points[name] = (points[name] || 0) + flightScore;
   });
 
-  // 3. Sort by Points and slice to Top 5
+  // 2. Sort by points and grab the Top 5
   const ranked = Object.entries(points)
     .map(([name, score]) => ({
       name,
@@ -233,8 +242,29 @@ if (cmd === 'leaderboard') {
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
-  // 4. Formatting with Medals
-  const medals = ['🥇', '🥈', '🥉', '🏅',
+  // 3. Define the Ranking Icons
+  const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
+
+  // 4. Build the display rows
+  const rows = ranked.map((p, i) => {
+    const rankIcon = medals[i] || `**#${i + 1}**`;
+    const formattedLbs = formatLbs(p.lbs);
+    const flightSuffix = p.flights === 1 ? 'Flight' : 'Flights';
+
+    return `${rankIcon} **${p.name}** — **${p.score.toLocaleString()} pts**\n` +
+           `└ *Net Payload: ${formattedLbs} (${p.flights} ${flightSuffix})*`;
+  }).join('\n\n');
+
+  // 5. Generate the Embed
+  const embed = new EmbedBuilder()
+    .setColor(0xC8920A) // UPS Gold
+    .setTitle('📊 Logistics Performance Index (Top 5)')
+    .setDescription(rows)
+    .setFooter({ text: 'Score = (Weight × Skill Mult) + Activity Bonus' })
+    .setTimestamp();
+
+  return interaction.editReply({ embeds: [embed] });
+}
 
     // ── /roster ───────────────────────────────────────────────────────────────
     if (cmd === 'roster') {
