@@ -193,32 +193,54 @@ if (cmd === 'leaderboard') {
   
   if (!pireps.length) return interaction.editReply('No PIREPs filed yet.');
 
-  const totals = {}, flights = {};
+  // Configuration for Multipliers
+  const airframeMultipliers = {
+    'B748': 0.7, // High capacity
+    'MD11': 0.9, // Tri-jet
+    'B722': 1.2, // Classic/Skill
+    'C208': 1.5  // Feeder/Harder to move mass
+  };
+
+  const totals = {}, flights = {}, points = {};
   
   pireps.forEach(p => {
     const n = p.pilot || 'Unknown';
-    totals[n] = (totals[n] || 0) + (Number(p.payload) || 0);
+    const weight = Number(p.payload) || 0;
+    const mult = airframeMultipliers[p.aircraft] || 1.0;
+    
+    // Calculate Score: (Weight * Multiplier) + (Fixed bonus per flight)
+    // Adding 500 points per flight is a simple way to reward activity 
+    // if you don't have 'hours' stored in the PIREP object yet.
+    const flightScore = Math.floor((weight * mult) + 500);
+
+    totals[n]  = (totals[n] || 0) + weight;
     flights[n] = (flights[n] || 0) + 1;
+    points[n]  = (points[n] || 0) + flightScore;
   });
 
-  // Limit to Top 5
-  const ranked = Object.entries(totals)
-    .map(([name, lbs]) => ({ name, lbs, flights: flights[name] }))
-    .sort((a, b) => b.lbs - a.lbs)
+  // Rank by Points instead of Lbs
+  const ranked = Object.entries(points)
+    .map(([name, score]) => ({ 
+      name, 
+      score, 
+      lbs: totals[name], 
+      flights: flights[name] 
+    }))
+    .sort((a, b) => b.score - a.score)
     .slice(0, 5); 
 
-  // Using Gold, Silver, Bronze, then Sports Medals for 4 & 5
   const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
   
   const rows = ranked.map((p, i) => 
-    (medals[i] || `**#${i + 1}**`) + ' **' + p.name + '** — ' + formatLbs(p.lbs) + ' · ' + p.flights + ' flight' + (p.flights !== 1 ? 's' : '')
-  ).join('\n');
+    `${medals[i] || `**#${i+1}**`} **${p.name}** — **${p.score.toLocaleString()} pts**\n` + 
+    `└ ${formatLbs(p.lbs)} · ${p.flights} flight${p.flights !== 1 ? 's' : ''}`
+  ).join('\n\n');
 
   const embed = new EmbedBuilder()
     .setColor(0xC8920A)
-    .setTitle('🏆 Top 5 Freight Haulers')
+    .setTitle('🏆 Top 5 Pilots (Weighted Merit)')
     .setDescription(rows)
-    .setFooter({ text: 'virtual-ups.vercel.app' })
+    .setFooter({ text: 'Score = (Weight × Skill Mult) + Activity Bonus' })
     .setTimestamp();
 
   return interaction.editReply({ embeds: [embed] });
