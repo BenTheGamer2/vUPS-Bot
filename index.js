@@ -190,61 +190,51 @@ client.on('interactionCreate', async interaction => {
 if (cmd === 'leaderboard') {
   const snap = await getState();
   const pireps = snap?.pireps || [];
-  
-  if (!pireps.length) return interaction.editReply('No PIREPs filed yet.');
 
-  // Configuration for Multipliers
+  if (!pireps.length) {
+    return interaction.editReply('No PIREPs filed yet.');
+  }
+
+  // 1. Define Multipliers for vUPS Fleet
   const airframeMultipliers = {
-    'B748': 0.7, // High capacity
-    'MD11': 0.9, // Tri-jet
-    'B722': 1.2, // Classic/Skill
-    'C208': 1.5  // Feeder/Harder to move mass
+    'B748': 0.7, // Heavy / High Capacity
+    'MD11': 0.9, // Tri-Jet
+    'B722': 1.2, // Classic / Manual
+    'C208': 1.5  // Feeder / High Effort per lb
   };
 
   const totals = {}, flights = {}, points = {};
-  
+
+  // 2. Aggregate Data and Calculate Weighted Scores
   pireps.forEach(p => {
-    const n = p.pilot || 'Unknown';
+    const name = p.pilot || 'Unknown';
     const weight = Number(p.payload) || 0;
-    const mult = airframeMultipliers[p.aircraft] || 1.0;
+    const aircraft = p.aircraft || 'Unknown';
     
-    // Calculate Score: (Weight * Multiplier) + (Fixed bonus per flight)
-    // Adding 500 points per flight is a simple way to reward activity 
-    // if you don't have 'hours' stored in the PIREP object yet.
+    // Multiplier Logic (Defaults to 1.0 if aircraft not listed)
+    const mult = airframeMultipliers[aircraft] || 1.0;
+    
+    // Formula: (Weight * Multiplier) + 500 point Activity Bonus
     const flightScore = Math.floor((weight * mult) + 500);
 
-    totals[n]  = (totals[n] || 0) + weight;
-    flights[n] = (flights[n] || 0) + 1;
-    points[n]  = (points[n] || 0) + flightScore;
+    totals[name] = (totals[name] || 0) + weight;
+    flights[name] = (flights[name] || 0) + 1;
+    points[name] = (points[name] || 0) + flightScore;
   });
 
-  // Rank by Points instead of Lbs
+  // 3. Sort by Points and slice to Top 5
   const ranked = Object.entries(points)
-    .map(([name, score]) => ({ 
-      name, 
-      score, 
-      lbs: totals[name], 
-      flights: flights[name] 
+    .map(([name, score]) => ({
+      name,
+      score,
+      lbs: totals[name],
+      flights: flights[name]
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5); 
+    .slice(0, 5);
 
-  const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
-  
-  const rows = ranked.map((p, i) => 
-    `${medals[i] || `**#${i+1}**`} **${p.name}** — **${p.score.toLocaleString()} pts**\n` + 
-    `└ ${formatLbs(p.lbs)} · ${p.flights} flight${p.flights !== 1 ? 's' : ''}`
-  ).join('\n\n');
-
-  const embed = new EmbedBuilder()
-    .setColor(0xC8920A)
-    .setTitle('🏆 Top 5 Pilots (Weighted Merit)')
-    .setDescription(rows)
-    .setFooter({ text: 'Score = (Weight × Skill Mult) + Activity Bonus' })
-    .setTimestamp();
-
-  return interaction.editReply({ embeds: [embed] });
-}
+  // 4. Formatting with Medals
+  const medals = ['🥇', '🥈', '🥉', '🏅',
 
     // ── /roster ───────────────────────────────────────────────────────────────
     if (cmd === 'roster') {
