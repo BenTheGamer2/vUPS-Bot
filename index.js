@@ -187,27 +187,42 @@ client.on('interactionCreate', async interaction => {
     }
 
     // ── /leaderboard ──────────────────────────────────────────────────────────
-    if (cmd === 'leaderboard') {
-      const snap   = await getState();
-      const pireps = snap?.pireps || [];
-      if (!pireps.length) return interaction.editReply('No PIREPs filed yet.');
-      const totals = {}, flights = {};
-      pireps.forEach(p => {
-        const n = p.pilot || 'Unknown';
-        totals[n]  = (totals[n]  || 0) + (Number(p.payload) || 0);
-        flights[n] = (flights[n] || 0) + 1;
-      });
-      const ranked = Object.entries(totals)
-        .map(([name, lbs]) => ({ name, lbs, flights: flights[name] }))
-        .sort((a, b) => b.lbs - a.lbs).slice(0, 10);
-      const medals = ['🥇','🥈','🥉'];
-      const rows = ranked.map((p,i) =>
-        (medals[i]||'**#'+(i+1)+'**') + ' **' + p.name + '** — ' + formatLbs(p.lbs) + ' · ' + p.flights + ' flight' + (p.flights!==1?'s':'')
-      ).join('\n');
-      const embed = new EmbedBuilder().setColor(0xC8920A).setTitle('🏆 Top Freight Haulers')
-        .setDescription(rows).setFooter({ text: 'virtual-ups.vercel.app' }).setTimestamp();
-      return interaction.editReply({ embeds: [embed] });
-    }
+if (cmd === 'leaderboard') {
+  const snap = await getState();
+  const pireps = snap?.pireps || [];
+  
+  if (!pireps.length) return interaction.editReply('No PIREPs filed yet.');
+
+  const totals = {}, flights = {};
+  
+  pireps.forEach(p => {
+    const n = p.pilot || 'Unknown';
+    totals[n] = (totals[n] || 0) + (Number(p.payload) || 0);
+    flights[n] = (flights[n] || 0) + 1;
+  });
+
+  // Changed .slice(0, 10) to .slice(0, 5)
+  const ranked = Object.entries(totals)
+    .map(([name, lbs]) => ({ name, lbs, flights: flights[name] }))
+    .sort((a, b) => b.lbs - a.lbs)
+    .slice(0, 5); 
+
+  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣']; // Added extra icons for flair
+  
+  const rows = ranked.map((p, i) => {
+    const rankLabel = medals[i] || `**#${i + 1}**`;
+    return `${rankLabel} **${p.name}** — ${formatLbs(p.lbs)} · ${p.flights} flight${p.flights !== 1 ? 's' : ''}`;
+  }).join('\n');
+
+  const embed = new EmbedBuilder()
+    .setColor(0xC8920A)
+    .setTitle('🏆 Top 5 Freight Haulers')
+    .setDescription(rows)
+    .setFooter({ text: 'virtual-ups.vercel.app' })
+    .setTimestamp();
+
+  return interaction.editReply({ embeds: [embed] });
+}
 
     // ── /roster ───────────────────────────────────────────────────────────────
     if (cmd === 'roster') {
